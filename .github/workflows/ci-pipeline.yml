@@ -483,7 +483,10 @@ jobs:
       # If the CI did not succeed ('VIB Verify' failed or skipped),
       # post a comment on the PR and assign a maintainer agent to review it
       - name: Manual review required
-        if: ${{ always() && (needs.vib-verify.result != 'success' || steps.merge.outcome != 'success' ) }}
+        if: |
+          always() &&
+          contains(github.event.pull_request.labels.*.name, 'verify') &&
+          (needs.vib-verify.result != 'success' || steps.merge.outcome != 'success' )
         uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea
         env:
           BODY: |
@@ -501,3 +504,11 @@ jobs:
               repo: context.repo.repo,
               body: `${BODY}`
             })
+      # If 'verify' label wasn't included, add it at the end of the workflow
+      # This ensures that VIB is executed after the update-pr is done.
+      - name: Add verify label
+        if: |
+          always() &&
+          (!contains(github.event.pull_request.labels.*.name, 'verify'))
+        with:
+          add-labels: verify
